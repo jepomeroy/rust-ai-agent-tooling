@@ -1,2 +1,2 @@
-pub(crate) mod langchain;
+pub(crate) mod langchain_model;
 pub(crate) mod tools;

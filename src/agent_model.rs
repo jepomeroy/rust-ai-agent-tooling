@@ -4,7 +4,7 @@ pub(crate) const MODEL: &str = "qwen3.5:4b";
 
 // Remote Ollama server. Host needs a scheme (http/https); port is separate.
 // Set to "http://localhost" / 11434 to use a local server instead.
-pub(crate) const OLLAMA_HOST: &str = "http://terra";
+pub(crate) const OLLAMA_HOST: &str = "http://localhost";
 pub(crate) const OLLAMA_PORT: u16 = 11434;
 
 pub(crate) const SYSTEM_PROMPT: &str = "You are a helpful assistant with access to tools for getting the \

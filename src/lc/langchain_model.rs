@@ -4,9 +4,9 @@ use std::{
 };
 
 use langchain_rust::{
-    agent::{AgentExecutor, ConversationalAgentBuilder},
+    agent::{AgentExecutor, OpenAiToolAgentBuilder},
     chain::{Chain, options::ChainCallOptions},
-    llm::client::{Ollama, OllamaClient},
+    llm::{OpenAI, ollama::openai::OllamaConfig},
     memory::SimpleMemory,
     prompt_args,
     tools::Tool,
@@ -22,14 +22,18 @@ pub struct LangChainModel;
 impl AgentModel for LangChainModel {
     async fn process(&self) {
         // ----- LLM -----
-        let ollama_client = OllamaClient::new(OLLAMA_HOST, OLLAMA_PORT);
-        let llm = Ollama::new(Arc::new(ollama_client), MODEL, None);
+        // Ollama's OpenAI-compatible endpoint (/v1) supports real tool-calling for
+        // models that advertise it (qwen3.5 does), unlike the native ollama_rs
+        // client used by LangChainModel, which silently drops `functions` options.
+        let ollama_config =
+            OllamaConfig::new().with_api_base(format!("{OLLAMA_HOST}:{OLLAMA_PORT}/v1"));
+        let llm = OpenAI::new(ollama_config).with_model(MODEL);
 
         // ----- Tools -----
         let tools: Vec<Arc<dyn Tool>> = vec![Arc::new(Time), Arc::new(WordCount)];
 
         // ----- System prompt + agent -----
-        let agent = ConversationalAgentBuilder::new()
+        let agent = OpenAiToolAgentBuilder::new()
             .tools(&tools)
             .prefix(SYSTEM_PROMPT)
             .options(ChainCallOptions::new().with_max_tokens(10000))
@@ -37,8 +41,6 @@ impl AgentModel for LangChainModel {
             .expect("failed to build agent");
 
         // ----- Memory -----
-        // SimpleMemory keeps conversation history in memory for the life of this process.
-        // It's lost when the process exits, same as the Python example's InMemorySaver.
         let memory = SimpleMemory::new();
         let executor = AgentExecutor::from_agent(agent).with_memory(memory.into());
 
